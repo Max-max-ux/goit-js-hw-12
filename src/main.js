@@ -37,6 +37,29 @@ form.addEventListener('submit', async e => {
   clearGallery();
   hideLoadMoreButton();
   showLoader();
+  fetchImages(query, 1);
+});
+
+loadMoreBtn.addEventListener('click', async () => {
+  showLoader();
+  hideLoadMoreButton();
+  fetchImages(currentQuery, currentPage + 1);
+});
+
+async function fetchImages(query, page) {
+  try {
+    const data = await getImagesByQuery(query, page);
+    totalHits = data.totalHits;
+
+    if (!data.hits.length) {
+      iziToast.info({
+        title: 'No results',
+        message: 'Sorry, there are no images matching your search query. Please try again!',
+        position: 'topRight',
+      });
+      return;
+    }
+
 
   try {
     const data = await getImagesByQuery(currentQuery, currentPage);
@@ -52,6 +75,7 @@ form.addEventListener('submit', async e => {
     }
 
     createGallery(data.hits);
+    lightbox.refresh();
 
     const maxPage = Math.ceil(totalHits / perPage);
     if (currentPage < maxPage) {
@@ -82,6 +106,7 @@ loadMoreBtn.addEventListener('click', async () => {
   try {
     const data = await getImagesByQuery(currentQuery, currentPage);
     createGallery(data.hits);
+    lightbox.refresh();
 
     const galleryItem = document.querySelector('.gallery-item');
     if (galleryItem) {
@@ -111,3 +136,15 @@ loadMoreBtn.addEventListener('click', async () => {
     hideLoader();
   }
 });
+
+import SimpleLightbox from 'simplelightbox';
+import 'simplelightbox/dist/simple-lightbox.min.css';
+
+const lightbox = new SimpleLightbox('.gallery a', {
+  captionsData: 'alt',
+  captionDelay: 250,
+});
+
+export function updateLightbox() {
+  lightbox.refresh();
+}
