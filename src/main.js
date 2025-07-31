@@ -35,15 +35,17 @@ form.addEventListener('submit', async e => {
   currentQuery = query;
   currentPage = 1;
   clearGallery();
-  hideLoadMoreButton();
+  hideLoadMoreButton(); // Ховаємо кнопку при новому пошуку
   showLoader();
-  fetchImages(query, 1);
+  await fetchImages(query, currentPage);
 });
 
+
 loadMoreBtn.addEventListener('click', async () => {
+  currentPage += 1;
   showLoader();
   hideLoadMoreButton();
-  fetchImages(currentQuery, currentPage + 1);
+  await fetchImages(currentQuery, currentPage);
 });
 
 async function fetchImages(query, page) {
@@ -60,22 +62,11 @@ async function fetchImages(query, page) {
       return;
     }
 
-
-  try {
-    const data = await getImagesByQuery(currentQuery, currentPage);
-    totalHits = data.totalHits;
-
-    if (!data.hits.length) {
-      iziToast.info({
-        title: 'No results',
-        message: 'Sorry, there are no images matching your search query. Please try again!',
-        position: 'topRight',
-      });
-      return;
-    }
-
     createGallery(data.hits);
-    lightbox.refresh();
+
+    if (page > 1) {
+      smoothScroll();
+    }
 
     const maxPage = Math.ceil(totalHits / perPage);
     if (currentPage < maxPage) {
@@ -94,57 +85,19 @@ async function fetchImages(query, page) {
     });
   } finally {
     hideLoader();
-    form.reset();
+    if (page === 1) {
+      form.reset();
+    }
   }
-});
+}
 
-loadMoreBtn.addEventListener('click', async () => {
-  currentPage += 1;
-  showLoader();
-  hideLoadMoreButton();
-
-  try {
-    const data = await getImagesByQuery(currentQuery, currentPage);
-    createGallery(data.hits);
-    lightbox.refresh();
-
-    const galleryItem = document.querySelector('.gallery-item');
-    if (galleryItem) {
-      const cardHeight = galleryItem.getBoundingClientRect().height;
-      window.scrollBy({
-        top: cardHeight * 2,
-        behavior: 'smooth',
-      });
-    }
-
-    const maxPage = Math.ceil(totalHits / perPage);
-    if (currentPage < maxPage) {
-      showLoadMoreButton();
-    } else {
-      iziToast.info({
-        message: "We're sorry, but you've reached the end of search results.",
-        position: 'topRight',
-      });
-    }
-  } catch (error) {
-    iziToast.error({
-      title: 'Error',
-      message: 'Ups.. Something went wrong',
-      position: 'topRight',
+function smoothScroll() {
+  const galleryItem = document.querySelector('.gallery-item');
+  if (galleryItem) {
+    const cardHeight = galleryItem.getBoundingClientRect().height;
+    window.scrollBy({
+      top: cardHeight * 2,
+      behavior: 'smooth',
     });
-  } finally {
-    hideLoader();
   }
-});
-
-import SimpleLightbox from 'simplelightbox';
-import 'simplelightbox/dist/simple-lightbox.min.css';
-
-const lightbox = new SimpleLightbox('.gallery a', {
-  captionsData: 'alt',
-  captionDelay: 250,
-});
-
-export function updateLightbox() {
-  lightbox.refresh();
 }
